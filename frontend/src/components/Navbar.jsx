@@ -1,19 +1,40 @@
 import { assets } from "../assets/assets";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 
 const Navbar = () => {
   const [visible, setVisible] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const { setShowSearch, getCartCount, navigate, token, setToken, setCartItems } =
+  const [showEditorial, setShowEditorial] = useState(false);
+  const { setShowSearch, getCartCount, navigate, token, setToken, setCartItems, profileImage, setProfileImage, backendURL, siteConfig, campaigns } =
     useContext(ShopContext);
+  const dropdownRef = useRef(null);
+  const editorialRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+      if (editorialRef.current && !editorialRef.current.contains(e.target)) {
+        setShowEditorial(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const logoSrc = siteConfig?.logo
+    ? (siteConfig.logo.startsWith("http") ? siteConfig.logo : `${backendURL}${siteConfig.logo}`)
+    : assets.logo;
 
   // 🔒 Déconnexion
   const logout = () => {
     localStorage.removeItem("token");
     setToken("");
     setCartItems({});
+    setProfileImage("");
     setShowDropdown(false);
     navigate("/login");
   };
@@ -31,7 +52,7 @@ const Navbar = () => {
     <div className="flex items-center justify-between py-5 px-4 sm:px-10 font-medium relative z-50">
       {/* Logo */}
       <Link to="/">
-        <img src={assets.logo} className="w-28 sm:w-36" alt="logo" />
+        <img src={logoSrc} className="w-28 sm:w-36" alt="logo" />
       </Link>
 
       {/* Liens principaux (Desktop) */}
@@ -42,6 +63,38 @@ const Navbar = () => {
         </NavLink>
         <NavLink to="/collection" className="flex flex-col items-center gap-1">
           <p>COLLECTION</p>
+          <hr className="w-2/4 border-none h-[1.5px] bg-gray-700 hidden group-hover:block" />
+        </NavLink>
+        {campaigns && campaigns.length > 0 && (
+          <div className="relative flex flex-col items-center gap-1" ref={editorialRef}>
+            <p
+              className="cursor-pointer select-none"
+              onClick={() => setShowEditorial((v) => !v)}
+            >
+              ÉDITORIAL
+            </p>
+            {showEditorial && (
+              <div className="absolute top-full left-0 mt-3 bg-white border border-gray-100 shadow-lg z-50 min-w-[200px] py-2">
+                {campaigns.map((c) => (
+                  <Link
+                    key={c._id}
+                    to={`/campaign/${c.slug}`}
+                    onClick={() => setShowEditorial(false)}
+                    className="block px-5 py-2.5 text-[13px] text-gray-600 hover:text-black hover:bg-gray-50 transition-colors whitespace-nowrap"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <NavLink to="/lookbook" className="flex flex-col items-center gap-1">
+          <p>LOOKBOOK</p>
+          <hr className="w-2/4 border-none h-[1.5px] bg-gray-700 hidden group-hover:block" />
+        </NavLink>
+        <NavLink to="/pop-ups" className="flex flex-col items-center gap-1">
+          <p>POP UPS</p>
           <hr className="w-2/4 border-none h-[1.5px] bg-gray-700 hidden group-hover:block" />
         </NavLink>
         <NavLink to="/about" className="flex flex-col items-center gap-1">
@@ -65,28 +118,30 @@ const Navbar = () => {
         />
 
         {/* 👤 Profil */}
-        <div className="relative">
-          <img
-            onClick={handleProfileClick}
-            className="w-7 cursor-pointer"
-            src={assets.profil}
-            alt="profile"
-          />
+        <div className="relative" ref={dropdownRef}>
+          {token && profileImage ? (
+            <img
+              onClick={handleProfileClick}
+              src={profileImage?.startsWith("http") ? profileImage : `${backendURL}${profileImage}`}
+              alt="profile"
+              className="w-8 h-8 rounded-full object-cover cursor-pointer border border-gray-200"
+            />
+          ) : (
+            <img
+              onClick={handleProfileClick}
+              className="w-7 cursor-pointer"
+              src={assets.profil}
+              alt="profile"
+            />
+          )}
 
           {/* Dropdown profil */}
           {token && showDropdown && (
             <div className="absolute right-0 mt-3 z-50">
-              <div className="flex flex-col gap-2 w-36 py-3 px-5 bg-white shadow-lg text-gray-600 rounded-lg">
-                <p className="cursor-pointer hover:text-black">My Profile</p>
-                <p
-                  onClick={() => navigate("/orders")}
-                  className="cursor-pointer hover:text-black"
-                >
-                  Orders
-                </p>
-                <p onClick={logout} className="cursor-pointer hover:text-black">
-                  Logout
-                </p>
+              <div className="flex flex-col gap-2 w-40 py-3 px-5 bg-white shadow-lg text-gray-600 rounded-lg">
+                <p onClick={() => { navigate('/profile'); setShowDropdown(false); }} className="cursor-pointer hover:text-black text-sm">Mon profil</p>
+                <p onClick={() => { navigate("/orders"); setShowDropdown(false); }} className="cursor-pointer hover:text-black text-sm">Mes commandes</p>
+                <p onClick={logout} className="cursor-pointer hover:text-black text-sm">Déconnexion</p>
               </div>
             </div>
           )}
@@ -133,25 +188,25 @@ const Navbar = () => {
           >
             HOME
           </NavLink>
-          <NavLink
-            onClick={() => setVisible(false)}
-            className="py-3 pl-6 border-b"
-            to="/collection"
-          >
+          <NavLink onClick={() => setVisible(false)} className="py-3 pl-6 border-b" to="/collection">
             COLLECTION
           </NavLink>
-          <NavLink
-            onClick={() => setVisible(false)}
-            className="py-3 pl-6 border-b"
-            to="/about"
-          >
+          {campaigns && campaigns.map((c) => (
+            <NavLink key={c._id} onClick={() => setVisible(false)}
+              className="py-3 pl-6 border-b text-gray-500" to={`/campaign/${c.slug}`}>
+              {c.name.toUpperCase()}
+            </NavLink>
+          ))}
+          <NavLink onClick={() => setVisible(false)} className="py-3 pl-6 border-b" to="/lookbook">
+            LOOKBOOK
+          </NavLink>
+          <NavLink onClick={() => setVisible(false)} className="py-3 pl-6 border-b" to="/pop-ups">
+            POP UPS
+          </NavLink>
+          <NavLink onClick={() => setVisible(false)} className="py-3 pl-6 border-b" to="/about">
             ABOUT
           </NavLink>
-          <NavLink
-            onClick={() => setVisible(false)}
-            className="py-3 pl-6 border-b"
-            to="/contact"
-          >
+          <NavLink onClick={() => setVisible(false)} className="py-3 pl-6 border-b" to="/contact">
             CONTACT
           </NavLink>
         </div>

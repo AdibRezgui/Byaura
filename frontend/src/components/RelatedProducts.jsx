@@ -25,18 +25,23 @@ const RelatedProducts = ({ category, subCategory }) => {
   return (
     <div className='my-24'>
       <div className='text-center text-3xl py-2'>
-        <Title text1="RELATED" text2="PRODUCTS" />
+        <Title text1="VOUS AIMEREZ" text2="AUSSI" />
       </div>
 
       <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6'>
         {related.map((item, index) => (
-          <ProductItem
-            key={index}
-            id={item._id}
-            name={item.name}
-            price={item.price}
-            image={item.image}
-          />
+          <div key={index} className="relative">
+            <ProductItem
+              id={item._id}
+              name={item.name}
+              price={item.price}
+              image={item.image}
+              salePrice={item.salePrice}
+              sizes={item.sizes}
+              color={item.color}
+              colorGroup={item.colorGroup}
+            />
+          </div>
         ))}
       </div>
     </div>

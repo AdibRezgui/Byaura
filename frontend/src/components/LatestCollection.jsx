@@ -1,19 +1,24 @@
 import React, { useContext, useState, useEffect } from "react";
 import { ShopContext } from "../context/ShopContext";
 import Title from "./Title";
-import ProductItem from "./ProductItem";
+import ImageTiles from "./ui/ImageTiles";
+import { Link } from "react-router-dom";
 
 const LatestCollection = () => {
-  const { products } = useContext(ShopContext);
+  const { products, navigate } = useContext(ShopContext);
   const [latestProducts, setLatestProducts] = useState([]);
 
   useEffect(() => {
     if (products && products.length > 0) {
-      // ⚙️ Trie les produits par date la plus récente (si tu as un champ createdAt)
-      const sorted = [...products].reverse(); // inverse simplement la liste
-      setLatestProducts(sorted.slice(0, 10)); // prend les 10 plus récents
+      const sorted = [...products].reverse();
+      setLatestProducts(sorted.slice(0, 3));
     }
   }, [products]);
+
+  if (latestProducts.length === 0) return null;
+
+  const p = latestProducts;
+  const get = (i) => p[i] || p[0];
 
   return (
     <div className="my-10">
@@ -24,23 +29,24 @@ const LatestCollection = () => {
         </p>
       </div>
 
-      {/* Rendering Products */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
-        {latestProducts.length > 0 ? (
-          latestProducts.map((item) => (
-            <ProductItem
-              key={item._id}
-              id={item._id}
-              name={item.name}
-              price={item.price}
-              image={item.image} // ✅ image principale corrigée
-            />
-          ))
-        ) : (
-          <p className="text-center col-span-full text-gray-500">
-            Aucun produit trouvé.
-          </p>
-        )}
+      <div className="flex flex-col items-center gap-8">
+        <div className="relative w-[520px] h-[360px] flex items-center justify-center">
+          <ImageTiles
+            leftImage={get(0).image}
+            middleImage={get(1).image}
+            rightImage={get(2).image}
+            onClickLeft={() => navigate(`/product/${get(0)._id}`)}
+            onClickMiddle={() => navigate(`/product/${get(1)._id}`)}
+            onClickRight={() => navigate(`/product/${get(2)._id}`)}
+          />
+        </div>
+
+        <Link
+          to="/collection"
+          className="text-sm tracking-widest text-gray-500 hover:text-black border-b border-gray-300 hover:border-black pb-0.5 transition-colors"
+        >
+          VOIR TOUTE LA COLLECTION →
+        </Link>
       </div>
     </div>
   );

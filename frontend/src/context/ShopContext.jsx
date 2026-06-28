@@ -9,13 +9,19 @@ export const ShopContext = createContext();
 const ShopContextProvider = (props) => {
   const currency = "TND";
   const delivery_fee = 7;
-  const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
+  const backendURL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:4000";
 
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [products, setProducts] = useState([]);
+  const [colorGroups, setColorGroups] = useState({});
   const [cartItems, setCartItems] = useState({});
   const [token, setToken] = useState("");
+  const [profileImage, setProfileImage] = useState("");
+  const [siteConfig, setSiteConfig] = useState({});
+  const [campaigns, setCampaigns] = useState([]);
+  const [activeSale, setActiveSale] = useState(null);
+  const [saleProducts, setSaleProducts] = useState([]);
   const navigate = useNavigate();
 
   // 🛒 Ajouter au panier
@@ -33,7 +39,7 @@ const ShopContextProvider = (props) => {
     }
 
     setCartItems(cartData);
-    toast.success("Produit ajouté au panier 🛒");
+    toast.success("Produit ajouté au panier");
 
     if (token) {
       try {
@@ -43,8 +49,10 @@ const ShopContextProvider = (props) => {
           { headers: { token } }
         );
       } catch (error) {
-        console.log(error);
-        toast.error(error.message);
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem("token");
+          setToken("");
+        }
       }
     }
   };
@@ -74,8 +82,10 @@ const ShopContextProvider = (props) => {
           { headers: { token } }
         );
       } catch (error) {
-        console.log(error);
-        toast.error(error.message);
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          localStorage.removeItem("token");
+          setToken("");
+        }
       }
     }
   };
@@ -88,24 +98,30 @@ const ShopContextProvider = (props) => {
         {},
         { headers: { token } }
       );
-
       if (response.data.success) {
         setCartItems(response.data.cartData);
       }
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
+      // Token expiré ou invalide → déconnexion silencieuse
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("token");
+        setToken("");
+        setCartItems({});
+      }
     }
   };
 
-  // 💰 Calcul du montant total
+  // 💰 Calcul du montant total (utilise salePrice si l'article est soldé)
   const getCartAmount = () => {
     let total = 0;
     for (const productId in cartItems) {
-      const product = products.find((p) => p._id === productId);
+      // Comparaison loose pour gérer number vs string
+      const product = products.find((p) => String(p._id) === String(productId));
       if (!product) continue;
+      const effectivePrice =
+        product.salePrice && product.salePrice > 0 ? product.salePrice : product.price;
       for (const size in cartItems[productId]) {
-        total += (product.price || 0) * (cartItems[productId][size] || 0);
+        total += (effectivePrice || 0) * (cartItems[productId][size] || 0);
       }
     }
     return total;
@@ -118,22 +134,31 @@ const ShopContextProvider = (props) => {
       if (response.data.success) {
         const fetched = response.data.products.map((p) => {
           const imageArray = Array.isArray(p.images)
-            ? p.images.map((img) =>
-                img.startsWith("/uploads/")
-                  ? `${backendURL}${img.replace(/\\/g, "/")}`
-                  : `${backendURL}/uploads/${img.replace(/\\/g, "/")}`
-              )
+            ? p.images.map((img) => {
+                const cleaned = img.replace(/\\/g, "/");
+                // URL Cloudinary ou autre URL absolue → on la laisse telle quelle
+                if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) return cleaned;
+                // Chemin local /uploads/... → préfixer avec backendURL
+                return `${backendURL}${cleaned.startsWith("/") ? cleaned : "/uploads/" + cleaned}`;
+              })
             : [];
 
           return {
             ...p,
             images: imageArray,
-            image:
-              imageArray[0] ||
-              "https://via.placeholder.com/400x400?text=No+Image",
+            image: imageArray[0] || null,
           };
         });
         setProducts(fetched);
+        // Build colorGroups map: { groupId -> Product[] }
+        const groups = {};
+        fetched.forEach((p) => {
+          if (p.colorGroup) {
+            if (!groups[p.colorGroup]) groups[p.colorGroup] = [];
+            groups[p.colorGroup].push(p);
+          }
+        });
+        setColorGroups(groups);
       } else {
         toast.error(response.data.message || "Erreur de chargement des produits");
       }
@@ -143,19 +168,65 @@ const ShopContextProvider = (props) => {
     }
   };
 
-  // 🔄 Charger produits au montage
+  // 🎨 Charger la config du site (hero, about, contact, logo)
+  const getSiteConfig = async () => {
+    try {
+      const { data } = await axios.get(`${backendURL}/api/config`);
+      if (data.success) setSiteConfig(data);
+    } catch {}
+  };
+
+  const getCampaigns = async () => {
+    try {
+      const { data } = await axios.get(`${backendURL}/api/campaign`);
+      if (data.success) setCampaigns(data.campaigns || []);
+    } catch {}
+  };
+
+  const getActiveSale = async () => {
+    try {
+      const { data } = await axios.get(`${backendURL}/api/sale/active`);
+      if (data.success) {
+        setActiveSale(data.sale || null);
+        const mapped = (data.products || []).map((p) => {
+          const imageArray = Array.isArray(p.images)
+            ? p.images.map((img) => {
+                const cleaned = img.replace(/\\/g, "/");
+                if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) return cleaned;
+                return `${backendURL}${cleaned.startsWith("/") ? cleaned : "/uploads/" + cleaned}`;
+              })
+            : [];
+          return { ...p, images: imageArray, image: imageArray[0] || null };
+        });
+        setSaleProducts(mapped);
+      }
+    } catch {}
+  };
+
+  // 🔄 Charger produits + config au montage
   useEffect(() => {
     getProductsData();
+    getSiteConfig();
+    getCampaigns();
+    getActiveSale();
   }, []);
 
-  // 🧠 Restaurer le token et le panier utilisateur
+  // 🧠 Restaurer le token + panier au montage
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     if (savedToken) {
       setToken(savedToken);
-      getUserCart(savedToken); // 👈 on appelle la fonction ici
+      getUserCart(savedToken);
     }
   }, []);
+
+  // 📸 Charger la photo de profil dès que le token est disponible (login ou refresh)
+  useEffect(() => {
+    if (!token) { setProfileImage(""); return; }
+    axios.get(`${backendURL}/api/user/profile`, { headers: { token } })
+      .then(({ data }) => { if (data.success) setProfileImage(data.profileImage || ""); })
+      .catch(() => {});
+  }, [token]);
 
   // 🧾 Debug panier
   useEffect(() => {
@@ -181,6 +252,15 @@ const ShopContextProvider = (props) => {
     token,
     setToken,
     setCartItems,
+    profileImage,
+    setProfileImage,
+    siteConfig,
+    getSiteConfig,
+    colorGroups,
+    campaigns,
+    activeSale,
+    saleProducts,
+    getActiveSale,
   };
 
   return (

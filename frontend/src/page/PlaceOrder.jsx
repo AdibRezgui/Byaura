@@ -1,121 +1,188 @@
-import React, { useContext, useState } from 'react'
-import Title from '../components/Title'
-import CartTotal from '../components/CartTotal'
-import { ShopContext } from '../context/ShopContext'
-import axios from 'axios'
-import { toast } from 'react-toastify'
+import { useContext, useState, useEffect } from "react";
+import { ShopContext } from "../context/ShopContext";
+import axios from "axios";
+import { toast } from "react-toastify";
+
+const inputCls = "w-full border-b border-gray-200 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder-gray-300";
 
 const PlaceOrder = () => {
-  const { navigate, backendURL, token, cartItems, setCartItems, getCartAmount, delivery_fee, products } = useContext(ShopContext)
-  const [method, setMethod] = useState('cod')
+  const { navigate, backendURL, token, cartItems, setCartItems, getCartAmount, delivery_fee, products } = useContext(ShopContext);
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    street: '',
-    city: '',
-    state: '',
-    zipcode: '',
-    country: '',
-    phone: ''
-  })
+    firstName: "", lastName: "", email: "",
+    street: "", city: "", state: "", zipcode: "", country: "", phone: ""
+  });
+  const [submitting, setSubmitting] = useState(false);
 
-  const onChangeHandler = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  useEffect(() => {
+    if (!token) navigate("/login");
+  }, [token]);
 
-  const onSubmitHandler = async (e) => {
-    e.preventDefault()
+  const set = (e) => setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
 
-    if (!token) {
-      toast.error("Vous devez être connecté pour passer une commande !")
-      return
-    }
+  const total = getCartAmount();
 
-    try {
-      const orderItems = []
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (!token) { toast.error("Connectez-vous pour passer une commande"); return; }
 
-      for (const itemsId in cartItems) {
-        for (const size in cartItems[itemsId]) {
-          if (cartItems[itemsId][size] > 0) {
-            const productInfo = structuredClone(products.find(p => p._id === itemsId))
-            if (productInfo) {
-              productInfo.size = size
-              productInfo.quantity = cartItems[itemsId][size]
-              orderItems.push(productInfo)
-            }
-          }
+    const orderItems = [];
+    for (const itemId in cartItems) {
+      for (const size in cartItems[itemId]) {
+        if (cartItems[itemId][size] > 0) {
+          const p = structuredClone(products.find(pr => String(pr._id) === String(itemId)));
+          if (p) { p.size = size; p.quantity = cartItems[itemId][size]; orderItems.push(p); }
         }
       }
-
-      const orderData = {
-        address: formData,
-        items: orderItems,
-        amount: getCartAmount() + delivery_fee,
-        paymentMethod: method.toUpperCase()
-      }
-
-      const response = await axios.post(
-        `${backendURL}/api/order/place`,
-        orderData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-
-      if (response.data.success) {
-        toast.success('Commande passée avec succès !')
-        setCartItems({})
-        navigate('/orders')
-      } else {
-        toast.error(response.data.message)
-      }
-    } catch (error) {
-      console.error(error)
-      toast.error(error.message)
     }
-  }
+    if (orderItems.length === 0) {
+      toast.error("Votre panier est vide");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+
+      const { data } = await axios.post(
+        `${backendURL}/api/order/place`,
+        { address: formData, items: orderItems, amount: total + delivery_fee, paymentMethod: "COD" },
+        { headers: { token } }
+      );
+
+      if (data.success) {
+        toast.success("Commande passée !");
+        setCartItems({});
+        navigate("/orders");
+      } else {
+        toast.error(data.message || "Erreur lors de la commande");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Erreur réseau");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <form className='flex flex-col sm:flex-row justify-between gap-4 pt-5 sm:pt-14 min-h-[80vh]' onSubmit={onSubmitHandler}>
-      {/* Left: Delivery Info */}
-      <div className='flex flex-col gap-4 w-full sm:max-w-[480px]'>
-        <div className='text-xl sm:text-2xl my-3'><Title text1='DELIVERY' text2='INFORMATION' /></div>
-        <div className='flex gap-3'>
-          <input name='firstName' value={formData.firstName} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='First Name'/>
-          <input name='lastName' value={formData.lastName} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Last Name'/>
-        </div>
-        <input name='email' value={formData.email} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' type='email' placeholder='Email'/>
-        <input name='street' value={formData.street} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Street'/>
-        <div className='flex gap-3'>
-          <input name='city' value={formData.city} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='City'/>
-          <input name='state' value={formData.state} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='State'/>
-        </div>
-        <div className='flex gap-3'>
-          <input name='zipcode' value={formData.zipcode} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Zipcode'/>
-          <input name='country' value={formData.country} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Country'/>
-        </div>
-        <input name='phone' value={formData.phone} onChange={onChangeHandler} required className='border border-gray-300 rounded py-1.5 px-3.5 w-full' placeholder='Phone'/>
+    <div className="pt-10 pb-24 border-t border-gray-100">
+
+      {/* En-tête */}
+      <div className="border-b border-gray-100 pb-5 mb-10">
+        <p className="text-[10px] tracking-[0.35em] uppercase text-gray-400 mb-1">Commander</p>
+        <h1 className="text-2xl font-light text-gray-900 tracking-tight">Finaliser ma commande</h1>
       </div>
 
-      {/* Right: Payment & Cart */}
-      <div className='mt-8 min-w-[80%] sm:min-w-[480px]'>
-        <CartTotal />
-        <div className='mt-12'>
-          <Title text1='PAYMENT' text2='METHOD'/>
-          <div className='flex gap-3 flex-col lg:flex-row'>
-            <div onClick={() => setMethod('cod')} className='flex items-center gap-3 border p-2 px-3 cursor-pointer'>
-              <p className={`min-w-3.5 h-3.5 border rounded-full ${method==='cod'?'bg-green-400':''}`}></p>
-              <p className='text-gray-500 text-sm font-medium mx-4'>CASH ON DELIVERY</p>
+      <form onSubmit={onSubmit} className="flex flex-col lg:flex-row gap-16 lg:gap-24">
+
+        {/* Livraison */}
+        <div className="flex-1">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-gray-400 mb-8">Adresse de livraison</p>
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Prénom *</label>
+                <input name="firstName" value={formData.firstName} onChange={set} required className={inputCls} placeholder="Marie" />
+              </div>
+              <div>
+                <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Nom *</label>
+                <input name="lastName" value={formData.lastName} onChange={set} required className={inputCls} placeholder="Dupont" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Email *</label>
+              <input name="email" type="email" value={formData.email} onChange={set} required className={inputCls} placeholder="marie@example.com" />
+            </div>
+            <div>
+              <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Adresse *</label>
+              <input name="street" value={formData.street} onChange={set} required className={inputCls} placeholder="12 Rue de la Paix" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Ville *</label>
+                <input name="city" value={formData.city} onChange={set} required className={inputCls} placeholder="Tunis" />
+              </div>
+              <div>
+                <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Code postal</label>
+                <input name="zipcode" value={formData.zipcode} onChange={set} className={inputCls} placeholder="1000" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Pays *</label>
+                <input name="country" value={formData.country} onChange={set} required className={inputCls} placeholder="Tunisie" />
+              </div>
+              <div>
+                <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1">Téléphone *</label>
+                <input name="phone" value={formData.phone} onChange={set} required className={inputCls} placeholder="+216 xx xxx xxx" />
+              </div>
             </div>
           </div>
         </div>
-        <div className='w-full text-end mt-8'>
-          <button type='submit' className='bg-black text-white px-16 py-3 text-sm'>PLACE ORDER</button>
-        </div>
-      </div>
-    </form>
-  )
-}
 
-export default PlaceOrder
+        {/* Résumé */}
+        <div className="w-full lg:w-80 flex-shrink-0">
+          <p className="text-[10px] tracking-[0.35em] uppercase text-gray-400 mb-8">Résumé</p>
+
+          {/* Articles */}
+          <div className="flex flex-col gap-4 mb-6">
+            {Object.entries(cartItems).map(([itemId, sizes]) =>
+              Object.entries(sizes).map(([size, qty]) => {
+                if (qty <= 0) return null;
+                const p = products.find(pr => String(pr._id) === String(itemId));
+                if (!p) return null;
+                const price = p.salePrice && p.salePrice > 0 ? p.salePrice : p.price;
+                return (
+                  <div key={`${itemId}-${size}`} className="flex items-center gap-3">
+                    <div className="w-12 h-14 overflow-hidden bg-gray-50 flex-shrink-0">
+                      <img src={p.image || p.images?.[0]} alt={p.name} className="w-full h-full object-cover object-top" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] tracking-widest uppercase text-gray-700 truncate">{p.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{size} · Qté {qty}</p>
+                    </div>
+                    <p className="text-sm text-gray-900 flex-shrink-0">
+                      {(price * qty).toLocaleString("fr-TN")}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Totaux */}
+          <div className="border-t border-gray-100 pt-5 flex flex-col gap-3">
+            <div className="flex justify-between text-xs">
+              <span className="tracking-widest uppercase text-gray-500">Sous-total</span>
+              <span>{total.toLocaleString("fr-TN")} TND</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="tracking-widest uppercase text-gray-500">Livraison</span>
+              <span>{delivery_fee.toLocaleString("fr-TN")} TND</span>
+            </div>
+            <div className="flex justify-between text-sm font-medium pt-3 border-t border-gray-100">
+              <span className="tracking-widest uppercase">Total</span>
+              <span>{(total + delivery_fee).toLocaleString("fr-TN")} TND</span>
+            </div>
+          </div>
+
+          {/* Paiement */}
+          <div className="mt-8">
+            <p className="text-[9px] tracking-widest uppercase text-gray-400 mb-4">Paiement</p>
+            <div className="flex items-center gap-3 border border-gray-900 px-4 py-3">
+              <div className="w-2 h-2 bg-gray-900 flex-shrink-0" />
+              <span className="text-xs tracking-widest uppercase text-gray-700">Paiement à la livraison</span>
+            </div>
+          </div>
+
+          <button type="submit" disabled={submitting}
+            className="w-full mt-6 bg-black text-white py-4 text-[11px] tracking-[0.3em] uppercase hover:bg-gray-800 transition-colors disabled:opacity-40">
+            {submitting ? "Traitement…" : "Confirmer la commande"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default PlaceOrder;

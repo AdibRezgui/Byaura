@@ -7,6 +7,21 @@ import { assets } from '../assets/assets.js';
 const Orders = ({ token, currency = 'TND' }) => {
   const [orders, setOrders] = useState([]);
 
+  const updateOrderStatus = async (orderId, status) => {
+    try {
+      const { data } = await axios.post(
+        backendUrl + '/api/order/status',
+        { orderId, status },
+        { headers: { token } }
+      );
+      if (data.success) {
+        fetchAllOrders();
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   const fetchAllOrders = async () => {
     if (!token) return;
 
@@ -114,7 +129,7 @@ const Orders = ({ token, currency = 'TND' }) => {
 
   return (
     <div style={styles.container}>
-      <h3 style={styles.title}>Order Page</h3>
+      <h3 style={styles.title}>Commandes</h3>
 
       {orders.map((order, index) => (
         <div
@@ -155,26 +170,21 @@ const Orders = ({ token, currency = 'TND' }) => {
           {/* --- Partie droite : infos, montant, statut --- */}
           <div style={styles.right}>
             <p style={styles.infoLine}>
-              Items: <span style={styles.bold}>{order.items.length}</span>
+              Articles : <span style={styles.bold}>{order.items.length}</span>
             </p>
             <p style={styles.infoLine}>
-              Method: <span style={styles.bold}>{order.paymentMethod}</span>
+              Paiement : <span style={styles.bold}>{order.paymentMethod === 'COD' ? 'À la livraison' : order.paymentMethod}</span>
             </p>
             <p style={styles.infoLine}>
-              Payment:{' '}
-              <span
-                style={{
-                  ...styles.bold,
-                  color: order.payment ? '#28a745' : '#d9534f',
-                }}
-              >
-                {order.payment ? 'Done' : 'Pending'}
+              Statut paiement :{' '}
+              <span style={{ ...styles.bold, color: order.payment ? '#28a745' : '#d9534f' }}>
+                {order.payment ? 'Payé' : 'En attente'}
               </span>
             </p>
             <p style={styles.infoLine}>
-              Date:{' '}
+              Date :{' '}
               <span style={styles.bold}>
-                {new Date(order.date).toLocaleDateString()}
+                {new Date(order.date).toLocaleDateString('fr-FR')}
               </span>
             </p>
 
@@ -184,7 +194,8 @@ const Orders = ({ token, currency = 'TND' }) => {
             </p>
 
             <select
-              defaultValue={order.status}
+              value={order.status}
+              onChange={(e) => updateOrderStatus(order._id, e.target.value)}
               style={{
                 ...styles.select,
                 background:
@@ -207,11 +218,11 @@ const Orders = ({ token, currency = 'TND' }) => {
                     : '#333',
               }}
             >
-              <option value="Order Placed">Order Placed</option>
-              <option value="Packing">Packing</option>
-              <option value="Shipped">Shipped</option>
-              <option value="Out for delivery">Out for delivery</option>
-              <option value="Delivered">Delivered</option>
+              <option value="Order Placed">Commande reçue</option>
+              <option value="Packing">En préparation</option>
+              <option value="Shipped">Expédiée</option>
+              <option value="Out for delivery">En livraison</option>
+              <option value="Delivered">Livrée</option>
             </select>
           </div>
         </div>

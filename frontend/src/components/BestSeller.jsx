@@ -2,36 +2,55 @@ import React, { useContext, useEffect, useState } from 'react';
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
 import ProductItem from './ProductItem';
+import axios from 'axios';
 
 const BestSeller = () => {
-  const { products } = useContext(ShopContext);
+  const { backendURL } = useContext(ShopContext);
   const [bestSeller, setBestSeller] = useState([]);
 
   useEffect(() => {
-    const bestProduct = products.filter((item) => item.bestseller);
-    setBestSeller(bestProduct.slice(0, 5));
-  }, [products]);
+    axios.get(`${backendURL}/api/product/bestsellers`)
+      .then(({ data }) => {
+        if (data.success && data.products.length > 0) {
+          const mapped = data.products.map((p) => {
+            const images = Array.isArray(p.images) ? p.images.map((img) => {
+              const cleaned = img.replace(/\\/g, '/');
+              if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned;
+              return `${backendURL}${cleaned.startsWith('/') ? cleaned : '/uploads/' + cleaned}`;
+            }) : [];
+            return { ...p, image: images[0] || '' };
+          });
+          setBestSeller(mapped);
+        }
+      })
+      .catch(() => {});
+  }, [backendURL]);
+
+  if (bestSeller.length === 0) return null;
 
   return (
     <div className='my-10'>
       <div className='text-center text-3xl py-8'>
-        <Title text1={'BEST'} text2={'SELLERS'} />
+        <Title text1={'MEILLEURES'} text2={'VENTES'} />
         <p className='w-3/4 m-auto text-xs sm:text-sm md:text-base text-gray-600'>
-          Lorem Ipsum is simply dummy text of the printing and typesetting industry. 
-          Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.
+          Les articles les plus appréciés et commandés par nos clients.
         </p>
       </div>
 
-      {/* Rendering Best Seller Products */}
       <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6'>
         {bestSeller.map((item) => (
-          <ProductItem
-            key={item._id} 
-            id={item._id} 
-            name={item.name} 
-            image={item.image} 
-            price={item.price} 
-          />
+          <div key={item._id} className="relative">
+            <ProductItem
+              id={item._id}
+              name={item.name}
+              image={item.image}
+              price={item.price}
+              salePrice={item.salePrice}
+              sizes={item.sizes}
+              color={item.color}
+              colorGroup={item.colorGroup}
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -39,4 +58,3 @@ const BestSeller = () => {
 };
 
 export default BestSeller;
-

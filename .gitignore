@@ -1,0 +1,28 @@
+# ===== Secrets =====
+.env
+
+# ===== Dependencies =====
+node_modules/
+
+# ===== Build outputs =====
+dist/
+dist-ssr/
+target/
+
+# ===== Uploads (fichiers utilisateurs, jamais dans git) =====
+uploads/
+
+# ===== Logs =====
+*.log
+npm-debug.log*
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== IDE =====
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.sw?

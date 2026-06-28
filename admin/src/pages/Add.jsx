@@ -1,220 +1,251 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { assets } from "../assets/assets";
 import axios from "axios";
 import { backendUrl } from "../App";
 import { toast } from "react-toastify";
 
-const Add = ({ token }) => {
-  const [image1, setImage1] = useState(false);
-  const [image2, setImage2] = useState(false);
-  const [image3, setImage3] = useState(false);
-  const [image4, setImage4] = useState(false);
+const SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL"];
 
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
+const inputCls = "w-full border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-gray-400 transition-colors bg-white";
+const labelCls = "text-[10px] tracking-widest text-gray-500 uppercase block mb-1.5";
 
-  const [category, setCategory] = useState("Men");
-  const [subCategory, setSubCategory] = useState("Shirts");
+const ImageSlot = ({ file, onChange, label }) => {
+  const [preview, setPreview] = useState(null);
 
-  const [bestseller, setBestseller] = useState(false);
-  const [sizes, setSizes] = useState([]);
-
-  const toggleSize = (size) => {
-    setSizes((prev) =>
-      prev.includes(size)
-        ? prev.filter((s) => s !== size)
-        : [...prev, size]
-    );
-  };
-
-  const onSubmitHandler = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("price", price);
-      formData.append("category", category);
-      formData.append("subCategory", subCategory);
-      formData.append("bestseller", bestseller);
-      formData.append("sizes", JSON.stringify(sizes));
-
-      if (image1) formData.append("images", image1);
-      if (image2) formData.append("images", image2);
-      if (image3) formData.append("images", image3);
-      if (image4) formData.append("images", image4);
-
-      const response = await axios.post(
-        backendUrl + "/api/product/add",
-        formData,
-        { headers: { token } }
-      );
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setName("");
-        setDescription("");
-        setPrice("");
-        setCategory("Men");
-        setSubCategory("Shirts");
-        setBestseller(false);
-        setSizes([]);
-        setImage1(false);
-        setImage2(false);
-        setImage3(false);
-        setImage4(false);
-      } else {
-        toast.error(response.data.message);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error(error.message);
-    }
+  const handleFile = (f) => {
+    if (!f) return;
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(URL.createObjectURL(f));
+    onChange(f);
   };
 
   return (
-    <form onSubmit={onSubmitHandler} className="flex flex-col w-full items-start gap-3">
+    <label className="cursor-pointer block">
+      <div className={`w-20 h-24 border border-dashed border-gray-200 overflow-hidden flex items-center justify-center bg-gray-50 hover:border-gray-400 transition-colors relative group`}>
+        {preview ? (
+          <img src={preview} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <svg className="w-6 h-6 text-gray-300 group-hover:text-gray-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        )}
+        {preview && (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+        )}
+      </div>
+      <p className="text-[9px] text-gray-400 text-center mt-1">{label}</p>
+      <input type="file" accept="image/*" hidden onChange={e => handleFile(e.target.files[0])} />
+    </label>
+  );
+};
+
+const Add = ({ token }) => {
+  const [images, setImages] = useState([null, null, null, null]);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [composition, setComposition] = useState("");
+  const [price, setPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [category, setCategory] = useState("Women");
+  const [subCategory, setSubCategory] = useState("Shirts");
+  const [color, setColor] = useState("#000000");
+  const [colorGroup, setColorGroup] = useState("");
+  const [sizes, setSizes] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const setImage = (idx, file) => {
+    setImages(prev => { const n = [...prev]; n[idx] = file; return n; });
+  };
+
+  const toggleSize = (size) => {
+    setSizes(prev => {
+      const n = { ...prev };
+      n[size] !== undefined ? delete n[size] : (n[size] = 0);
+      return n;
+    });
+  };
+
+  const setStock = (size, val) => {
+    setSizes(prev => ({ ...prev, [size]: Math.max(0, parseInt(val) || 0) }));
+  };
+
+  const reset = () => {
+    setImages([null, null, null, null]);
+    setName(""); setDescription(""); setComposition(""); setPrice("");
+    setSalePrice(""); setCategory("Women"); setSubCategory("Shirts");
+    setColor("#000000"); setColorGroup(""); setSizes({});
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validation explicite
+    if (!name.trim()) return toast.error("Le nom du produit est requis");
+    if (!price || isNaN(price) || Number(price) <= 0) return toast.error("Le prix est requis");
+
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("name", name.trim());
+      fd.append("description", description);
+      fd.append("composition", composition);
+      fd.append("price", price);
+      fd.append("category", category);
+      fd.append("subCategory", subCategory);
+      fd.append("sizes", JSON.stringify(sizes));
+      if (salePrice && Number(salePrice) > 0) fd.append("salePrice", salePrice);
+      fd.append("color", color);
+      if (colorGroup.trim()) fd.append("colorGroup", colorGroup.trim());
+      images.forEach(f => { if (f) fd.append("images", f); });
+
+      const { data } = await axios.post(`${backendUrl}/api/product/add`, fd, { headers: { token } });
+
+      if (data.success) {
+        toast.success("Produit ajouté");
+        reset();
+      } else {
+        toast.error(data.message || "Erreur lors de l'ajout");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || err.message || "Erreur réseau");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const discountPct = salePrice && price && Number(salePrice) < Number(price)
+    ? Math.round((1 - Number(salePrice) / Number(price)) * 100) : null;
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-7 max-w-2xl pb-16">
+
+      {/* Images */}
       <div>
-        <p className="mb-2 font-semibold">Upload Images</p>
-        <div className="flex gap-2 flex-wrap">
-          {[1, 2, 3, 4].map((num) => (
-            <label key={num} htmlFor={`image${num}`}>
-              <img
-                className="w-20 h-20 object-cover cursor-pointer border border-gray-300 rounded-md"
-                src={
-                  (num === 1 && image1 && URL.createObjectURL(image1)) ||
-                  (num === 2 && image2 && URL.createObjectURL(image2)) ||
-                  (num === 3 && image3 && URL.createObjectURL(image3)) ||
-                  (num === 4 && image4 && URL.createObjectURL(image4)) ||
-                  assets.upload_area
-                }
-                alt={`upload ${num}`}
-              />
-              <input
-                type="file"
-                id={`image${num}`}
-                hidden
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  if (num === 1) setImage1(file);
-                  if (num === 2) setImage2(file);
-                  if (num === 3) setImage3(file);
-                  if (num === 4) setImage4(file);
-                }}
-              />
-            </label>
+        <p className={labelCls}>Photos du produit</p>
+        <div className="flex gap-3">
+          {[0, 1, 2, 3].map(i => (
+            <ImageSlot key={i} file={images[i]}
+              onChange={f => setImage(i, f)}
+              label={i === 0 ? "Principal" : `Photo ${i + 1}`} />
           ))}
         </div>
       </div>
 
-      <div className="w-full">
-        <p className="mb-2 font-semibold">Product Name</p>
-        <input
-          type="text"
-          placeholder="Type product name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-md"
-          required
-        />
-      </div>
-      <div className="w-full">
-        <p className="mb-2 font-semibold">Product Description</p>
-        <textarea
-          placeholder="Write product description"
-          rows="3"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full max-w-[500px] px-3 py-2 border border-gray-300 rounded-md"
-        />
+      {/* Nom */}
+      <div>
+        <label className={labelCls}>Nom du produit *</label>
+        <input value={name} onChange={e => setName(e.target.value)}
+          placeholder="ex: Robe Lin Bleu"
+          className={inputCls} />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 w-full sm:gap-8">
+      {/* Description */}
+      <div>
+        <label className={labelCls}>Description</label>
+        <textarea value={description} rows={3}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Description éditoriale du produit..."
+          className={`${inputCls} resize-none`} />
+      </div>
+
+      {/* Composition */}
+      <div>
+        <label className={labelCls}>Composition</label>
+        <textarea value={composition} rows={2}
+          onChange={e => setComposition(e.target.value)}
+          placeholder="ex: 100% Lin, 80% Polyester 20% Élasthanne..."
+          className={`${inputCls} resize-none`} />
+      </div>
+
+      {/* Catégories */}
+      <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="mb-2 font-semibold">Product Category</p>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          >
-            <option value="Men">Men</option>
+          <label className={labelCls}>Catégorie</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} className={inputCls}>
             <option value="Women">Women</option>
+            <option value="Men">Men</option>
           </select>
         </div>
-
         <div>
-          <p className="mb-2 font-semibold">Sub Category</p>
-          <select
-            value={subCategory}
-            onChange={(e) => setSubCategory(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          >
-            <option value="Shirts">Shirts</option>
-            <option value="T-shirts">T-shirts</option>
-            <option value="Pants">Pants</option>
-            <option value="Jeans">Jeans</option>
-            <option value="Shorts">Shorts</option>
-            <option value="Skirts">Skirts</option>
-            <option value="Dress">Dress</option>
-            <option value="Tank Top">Tank Top</option>
-            <option value="Jackets">Jackets</option>
-            <option value="Accessories">Accessories</option>
-            <option value="Sweater">Sweater</option>
+          <label className={labelCls}>Sous-catégorie</label>
+          <select value={subCategory} onChange={e => setSubCategory(e.target.value)} className={inputCls}>
+            {["Shirts","T-shirts","Pants","Jeans","Shorts","Skirts","Dress","Tank Top","Jackets","Accessories","Sweater"].map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
         </div>
       </div>
 
-      <div>
-        <p className="mb-2 font-semibold">Product Price</p>
-        <input
-          type="number"
-          placeholder="25"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className="w-full max-w-[200px] px-3 py-2 border border-gray-300 rounded-md"
-          required
-        />
+      {/* Prix */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>Prix (TND) *</label>
+          <input type="number" min="0" step="0.01" value={price}
+            onChange={e => setPrice(e.target.value)}
+            placeholder="ex: 150" className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>
+            Prix soldé (TND)
+            {discountPct && <span className="ml-2 text-red-400 normal-case tracking-normal">-{discountPct}%</span>}
+          </label>
+          <input type="number" min="0" step="0.01" value={salePrice}
+            onChange={e => setSalePrice(e.target.value)}
+            placeholder="Optionnel" className={`${inputCls} border-orange-200 focus:border-orange-400`} />
+        </div>
       </div>
 
+      {/* Tailles & stock */}
       <div>
-        <p className="mb-2 font-semibold">Product Sizes</p>
-        <div className="flex gap-2 flex-wrap">
-          {["XXS", "XS", "S", "M", "L", "XL", "XXL"].map((size) => (
-            <div
-              key={size}
-              onClick={() => toggleSize(size)}
-              className={`px-3 py-1 cursor-pointer rounded-md border ${
-                sizes.includes(size)
-                  ? "bg-pink-100 border-pink-400"
-                  : "bg-slate-200 border-gray-300"
-              }`}
-            >
-              <p>{size}</p>
+        <label className={labelCls}>Tailles & stock</label>
+        <div className="flex flex-wrap gap-3">
+          {SIZES.map(size => (
+            <div key={size} className="flex flex-col items-center gap-1.5">
+              <button type="button" onClick={() => toggleSize(size)}
+                className={`px-3 py-1 text-xs border transition-colors ${
+                  sizes[size] !== undefined
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 text-gray-500 hover:border-gray-400"
+                }`}>
+                {size}
+              </button>
+              {sizes[size] !== undefined && (
+                <input type="number" min="0" value={sizes[size]}
+                  onChange={e => setStock(size, e.target.value)}
+                  onClick={e => e.stopPropagation()}
+                  className="w-14 text-center text-xs border border-gray-200 px-1 py-1 focus:outline-none focus:border-gray-400" />
+              )}
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-gray-400 mt-2">Cliquez pour activer, saisissez le stock.</p>
       </div>
 
-      <div className="flex gap-2 mt-2">
-        <input
-          type="checkbox"
-          id="bestseller"
-          checked={bestseller}
-          onChange={() => setBestseller((prev) => !prev)}
-        />
-        <label className="cursor-pointer" htmlFor="bestseller">
-          Add to bestseller
-        </label>
+      {/* Couleur & variantes */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className={labelCls}>Couleur</label>
+          <div className="flex items-center gap-3">
+            <input type="color" value={color} onChange={e => setColor(e.target.value)}
+              className="w-9 h-9 cursor-pointer border border-gray-200 bg-white p-0.5" />
+            <span className="text-xs text-gray-400 font-mono">{color}</span>
+          </div>
+        </div>
+        <div>
+          <label className={labelCls}>Groupe de variantes <span className="normal-case tracking-normal text-gray-400">(optionnel)</span></label>
+          <input value={colorGroup} onChange={e => setColorGroup(e.target.value)}
+            placeholder="ex: robe-mini-basic" className={inputCls} />
+          <p className="text-[10px] text-gray-400 mt-1">Même ID = variantes couleur</p>
+        </div>
       </div>
 
-      <button
-        type="submit"
-        className="w-28 py-3 mt-4 bg-black text-white rounded-md hover:bg-gray-800"
-      >
-        ADD
+{/* Bouton */}
+      <button type="submit" disabled={submitting}
+        className="self-start px-10 py-3 bg-black text-white text-xs tracking-widest uppercase hover:bg-gray-800 transition-colors disabled:opacity-40">
+        {submitting ? "Ajout en cours…" : "Ajouter le produit"}
       </button>
+
     </form>
   );
 };
