@@ -95,7 +95,7 @@ services:
           cpus: '0.25'
 
   caddy:
-    image: caddy:latest
+    build: ./caddy
     restart: unless-stopped
     ports:
       - "80:80"
