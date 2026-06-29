@@ -1,43 +1,55 @@
 {
-    order rate_limit before basic_auth
+	order rate_limit before basic_auth
 }
 
 byaura.duckdns.org {
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "SAMEORIGIN"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        -Server
-    }
-    rate_limit {
-        zone byaura_zone {
-            key {remote_host}
-            events 100
-            window 10s
-        }
-    }
-    handle /api/* { reverse_proxy backend:4000 }
-    handle /uploads/* { reverse_proxy backend:4000 }
-    handle { reverse_proxy frontend:80 }
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	rate_limit {
+		zone byaura_zone {
+			key {remote_host}
+			events 100
+			window 10s
+		}
+	}
+	handle /api/* {
+		reverse_proxy backend:4000
+	}
+	handle /uploads/* {
+		reverse_proxy backend:4000
+	}
+	handle {
+		reverse_proxy frontend:80
+	}
 }
 
 byaura-admin.duckdns.org {
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Content-Type-Options "nosniff"
-        X-Frame-Options "SAMEORIGIN"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        -Server
-    }
-    rate_limit {
-        zone admin_zone {
-            key {remote_host}
-            events 100
-            window 10s
-        }
-    }
-    handle /api/* { reverse_proxy backend:4000 }
-    handle /uploads/* { reverse_proxy backend:4000 }
-    handle { reverse_proxy admin:80 }
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	rate_limit {
+		zone admin_zone {
+			key {remote_host}
+			events 100
+			window 10s
+		}
+	}
+	handle /api/* {
+		reverse_proxy backend:4000
+	}
+	handle /uploads/* {
+		reverse_proxy backend:4000
+	}
+	handle {
+		reverse_proxy admin:80
+	}
 }
