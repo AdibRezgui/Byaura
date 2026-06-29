@@ -7,6 +7,7 @@ RUN mvn package -DskipTests -q
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+RUN apk add --no-cache wget
 COPY --from=builder /app/target/*.jar app.jar
 RUN mkdir -p /uploads
 EXPOSE 4000
