@@ -33,15 +33,15 @@ const Footer = () => (
       {/* Contact */}
       <div className="flex flex-col gap-3">
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-400 mb-1">Contact</p>
-        <a href="mailto:contact@byaura.com"
+        <a href="mailto:byaurardtw@gmail.com"
           className="text-xs text-gray-500 hover:text-black transition-colors w-fit">
-          contact@byaura.com
+          byaurardtw@gmail.com
         </a>
-        <a href="https://instagram.com/byaura" target="_blank" rel="noreferrer"
+        <a href="https://instagram.com/byaurartw" target="_blank" rel="noreferrer"
           className="text-xs text-gray-500 hover:text-black transition-colors w-fit">
-          @byaura
+          @byaurartw
         </a>
-        <p className="text-xs text-gray-400 mt-2">Tunis, Tunisie</p>
+        <p className="text-xs text-gray-400 mt-2">La Marsa, Tunis, Tunisie</p>
       </div>
     </div>
 

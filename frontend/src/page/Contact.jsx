@@ -1,13 +1,40 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
 import { assets } from "../assets/assets";
 import { ShopContext } from "../context/ShopContext";
 
 const Contact = () => {
   const { siteConfig, backendURL } = useContext(ShopContext);
+  const [sending, setSending] = useState(false);
 
   const contactImage = siteConfig?.contactImage
     ? (siteConfig.contactImage.startsWith("http") ? siteConfig.contactImage : `${backendURL}${siteConfig.contactImage}`)
     : assets.contactcover;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    setSending(true);
+    try {
+      const { data } = await axios.post(`${backendURL}/api/contact`, {
+        name: form.name.value,
+        email: form.email.value,
+        subject: form.subject.value,
+        message: form.message.value,
+      });
+      if (data.success) {
+        toast.success("Message envoyé !");
+        form.reset();
+      } else {
+        toast.error(data.message || "Erreur lors de l'envoi.");
+      }
+    } catch {
+      toast.error("Impossible d'envoyer le message. Réessayez plus tard.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="-mx-4 sm:-mx-[5vw] md:-mx-[7vw] lg:-mx-[9vw] text-gray-900">
@@ -21,7 +48,7 @@ const Contact = () => {
         />
         <div className="absolute inset-0 bg-black/40" />
         <div className="absolute inset-0 flex flex-col items-start justify-end pb-10 sm:pb-14 px-6 sm:px-12 lg:px-20 text-white">
-          <p className="text-[10px] tracking-[0.4em] uppercase mb-3 opacity-60">Tunis, Tunisie</p>
+          <p className="text-[10px] tracking-[0.4em] uppercase mb-3 opacity-60">La Marsa, Tunis, Tunisie</p>
           <h1 className="prata-regular text-4xl sm:text-5xl font-light leading-none">Contact.</h1>
         </div>
       </div>
@@ -36,21 +63,22 @@ const Contact = () => {
           <div className="flex flex-col gap-10">
             <div>
               <p className="text-[10px] tracking-[0.3em] uppercase text-gray-300 mb-2">Email</p>
-              <a href="mailto:contact@byaura.com"
+              <a href="mailto:byaurardtw@gmail.com"
                 className="text-sm text-gray-700 hover:text-black transition-colors">
-                contact@byaura.com
+                byaurardtw@gmail.com
               </a>
             </div>
             <div>
               <p className="text-[10px] tracking-[0.3em] uppercase text-gray-300 mb-2">Instagram</p>
               <a href="https://instagram.com/byaura" target="_blank" rel="noreferrer"
                 className="text-sm text-gray-700 hover:text-black transition-colors">
-                @byaura
+                @byaurartw
               </a>
             </div>
             <div>
               <p className="text-[10px] tracking-[0.3em] uppercase text-gray-300 mb-2">Localisation</p>
               <p className="text-sm text-gray-700 leading-relaxed">
+                Avenue Abderahmane Mami, La Marsa<br />
                 Tunis, Tunisie
               </p>
             </div>
@@ -67,13 +95,7 @@ const Contact = () => {
         <div className="w-full lg:w-1/2 px-6 sm:px-12 lg:px-20 py-16">
           <p className="text-[10px] tracking-[0.35em] uppercase text-gray-400 mb-10">Envoyer un message</p>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              window.location.href = `mailto:contact@byaura.com?subject=${encodeURIComponent(e.target.subject.value)}&body=${encodeURIComponent(e.target.message.value)}`;
-            }}
-            className="flex flex-col gap-7"
-          >
+          <form onSubmit={handleSubmit} className="flex flex-col gap-7">
             <div>
               <label className="text-[9px] tracking-widest uppercase text-gray-400 block mb-1.5">Nom</label>
               <input
@@ -116,9 +138,10 @@ const Contact = () => {
             </div>
             <button
               type="submit"
-              className="mt-2 self-start bg-black text-white text-[11px] tracking-[0.3em] uppercase px-8 py-3.5 hover:bg-gray-800 transition-colors"
+              disabled={sending}
+              className="mt-2 self-start bg-black text-white text-[11px] tracking-[0.3em] uppercase px-8 py-3.5 hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
-              Envoyer
+              {sending ? "Envoi..." : "Envoyer"}
             </button>
           </form>
         </div>

@@ -12,8 +12,8 @@ const LegalPage = () => (
 
     <Section title="Éditeur du site">
       <p>AURA — Marque de prêt-à-porter</p>
-      <p>Tunis, Tunisie</p>
-      <p>Email : <a href="mailto:contact@byaura.com" className="underline hover:text-black">contact@byaura.com</a></p>
+      <p>Avenue Abderahmane Mami, La Marsa, Tunis, Tunisie</p>
+      <p>Email : <a href="mailto:byaurardtw@gmail.com" className="underline hover:text-black">byaurardtw@gmail.com</a></p>
     </Section>
 
     <Section title="Hébergement">
@@ -25,7 +25,7 @@ const LegalPage = () => (
     </Section>
 
     <Section title="Données personnelles">
-      <p>Les informations collectées lors de vos commandes (nom, adresse, email) sont utilisées uniquement pour le traitement de vos commandes et ne sont jamais cédées à des tiers. Conformément à la réglementation applicable, vous disposez d'un droit d'accès, de rectification et de suppression de vos données en nous contactant à <a href="mailto:contact@byaura.com" className="underline hover:text-black">contact@byaura.com</a>.</p>
+      <p>Les informations collectées lors de vos commandes (nom, adresse, email) sont utilisées uniquement pour le traitement de vos commandes et ne sont jamais cédées à des tiers. Conformément à la réglementation applicable, vous disposez d'un droit d'accès, de rectification et de suppression de vos données en nous contactant à <a href="mailto:byaurardtw@gmail.com" className="underline hover:text-black">byaurardtw@gmail.com</a>.</p>
     </Section>
 
     <Section title="Cookies">
