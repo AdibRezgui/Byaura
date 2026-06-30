@@ -2,7 +2,7 @@
 	order rate_limit before basic_auth
 }
 
-byaura.duckdns.org {
+byaura.xyz, byaura.duckdns.org {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
@@ -28,7 +28,7 @@ byaura.duckdns.org {
 	}
 }
 
-byaura-admin.duckdns.org {
+admin.byaura.xyz, byaura-admin.duckdns.org {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
