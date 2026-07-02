@@ -79,6 +79,14 @@ const Sidebar = () => {
           <p className="hidden md:block">Soldes</p>
         </NavLink>
 
+        <NavLink
+          to="/stock"
+          className="flex items-center gap-3 border border-gray-300 border-r-0 px-3 py-2 rounded-l"
+        >
+          <img className="w-5 h-5" src={assets.listitems_icon} alt="Stock" />
+          <p className="hidden md:block">Stock</p>
+        </NavLink>
+
       </div>
     </div>
   )

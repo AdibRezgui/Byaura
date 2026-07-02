@@ -11,6 +11,7 @@ import Campaigns from './pages/Campaigns'
 import Lookbook from './pages/Lookbook'
 import PopUps from './pages/PopUps'
 import Soldes from './pages/Soldes'
+import Stock from './pages/Stock'
 import Login from './components/Login'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -48,6 +49,7 @@ const App = () => {
                 <Route path="/lookbook" element={<Lookbook token={token} />} />
                 <Route path="/popups" element={<PopUps token={token} />} />
                 <Route path="/soldes" element={<Soldes token={token} />} />
+                <Route path="/stock" element={<Stock token={token} />} />
               </Routes>
             </div>
           </div>

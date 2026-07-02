@@ -148,6 +148,22 @@ public class ProductController {
         return ResponseEntity.ok(result);
     }
 
+    @PatchMapping("/{id}/stock")
+    public ResponseEntity<Map<String, Object>> updateStock(
+            @PathVariable Long id,
+            @RequestBody Map<String, Integer> sizes) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Product updated = productService.updateStock(id, sizes);
+            result.put("success", true);
+            result.put("product", updated);
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/remove")
     public ResponseEntity<Map<String, Object>> removeProduct(@RequestBody Map<String, Object> body) {
         Map<String, Object> result = new HashMap<>();

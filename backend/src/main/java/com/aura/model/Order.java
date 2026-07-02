@@ -51,4 +51,8 @@ public class Order {
 
     @Column
     private Long date;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean archived = false;
 }

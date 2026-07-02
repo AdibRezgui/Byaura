@@ -63,7 +63,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/config/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/config/**").hasRole("ADMIN")
                 .requestMatchers("/api/product/add", "/api/product/remove", "/api/product/sale", "/api/product/update/**").hasRole("ADMIN")
-                .requestMatchers("/api/order/list", "/api/order/status").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/product/*/stock").hasRole("ADMIN")
+                .requestMatchers("/api/order/list", "/api/order/status", "/api/order/archive", "/api/order/archived").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/user/list").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/user/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/look/product/**").permitAll()
@@ -96,7 +97,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);

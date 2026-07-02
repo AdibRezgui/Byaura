@@ -122,6 +122,13 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    public Product updateStock(Long id, Map<String, Integer> sizes) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Produit introuvable : " + id));
+        product.setSizes(sizes);
+        return productRepository.save(product);
+    }
+
     public void removeProduct(Long id) {
         productRepository.deleteById(id);
     }

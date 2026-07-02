@@ -9,4 +9,7 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserId(Long userId);
+    List<Order> findByArchivedFalseOrderByDateDesc();
+    List<Order> findByArchivedTrueOrderByDateDesc();
+    List<Order> findByUserIdAndArchivedFalse(Long userId);
 }

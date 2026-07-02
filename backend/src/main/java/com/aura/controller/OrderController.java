@@ -89,6 +89,34 @@ public class OrderController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/archive")
+    public ResponseEntity<Map<String, Object>> archiveOrder(@RequestBody Map<String, Object> body) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            Long orderId = Long.parseLong(body.get("orderId").toString());
+            orderService.archiveOrder(orderId);
+            result.put("success", true);
+            result.put("message", "Commande archivée");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/archived")
+    public ResponseEntity<Map<String, Object>> archivedOrders() {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            result.put("success", true);
+            result.put("orders", orderService.getArchivedOrders());
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", e.getMessage());
+        }
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/status")
     public ResponseEntity<Map<String, Object>> updateStatus(@RequestBody Map<String, Object> body) {
         Map<String, Object> result = new HashMap<>();

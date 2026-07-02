@@ -75,17 +75,31 @@ public class OrderService {
     }
 
     public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+        return orderRepository.findByArchivedFalseOrderByDateDesc();
+    }
+
+    public List<Order> getArchivedOrders() {
+        return orderRepository.findByArchivedTrueOrderByDateDesc();
     }
 
     public List<Order> getUserOrders(Long userId) {
-        return orderRepository.findByUserId(userId);
+        return orderRepository.findByUserIdAndArchivedFalse(userId);
     }
 
     public void updateOrderStatus(Long orderId, String status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
         order.setStatus(status);
+        orderRepository.save(order);
+    }
+
+    public void archiveOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Commande introuvable : " + orderId));
+        if (!"Delivered".equals(order.getStatus())) {
+            throw new RuntimeException("Seules les commandes livrées peuvent être archivées.");
+        }
+        order.setArchived(true);
         orderRepository.save(order);
     }
 }
